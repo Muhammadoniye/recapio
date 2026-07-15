@@ -70,23 +70,46 @@ export async function POST(
         },
       });
 
-      // 5. Read the raw audio file from local storage
+      // 5. Read audio file from either local storage or fetch from cloud storage
       const audioFileName = path.basename(recap.audioUrl);
-      const localFilePath = path.join(process.cwd(), "public", "uploads", audioFileName);
+      let fileBuffer: Buffer;
 
-      if (!fs.existsSync(localFilePath)) {
-        const errorMsg = "Source audio file not found on server storage.";
-        await prisma.recap.update({
-          where: { id },
-          data: {
-            status: "failed",
-            errorMessage: errorMsg,
-          },
-        });
-        return NextResponse.json({ error: errorMsg }, { status: 500 });
+      if (recap.audioUrl.startsWith("/uploads/")) {
+        const localFilePath = path.join(process.cwd(), "public", "uploads", audioFileName);
+
+        if (!fs.existsSync(localFilePath)) {
+          const errorMsg = "Source audio file not found on server storage.";
+          await prisma.recap.update({
+            where: { id },
+            data: {
+              status: "failed",
+              errorMessage: errorMsg,
+            },
+          });
+          return NextResponse.json({ error: errorMsg }, { status: 500 });
+        }
+
+        fileBuffer = await fs.promises.readFile(localFilePath);
+      } else {
+        try {
+          const fileResponse = await fetch(recap.audioUrl);
+          if (!fileResponse.ok) {
+            throw new Error(`HTTP error ${fileResponse.status}: ${fileResponse.statusText}`);
+          }
+          const arrayBuffer = await fileResponse.arrayBuffer();
+          fileBuffer = Buffer.from(arrayBuffer);
+        } catch (fetchErr) {
+          const errorMsg = `Failed to download audio file from cloud storage: ${fetchErr instanceof Error ? fetchErr.message : "Network error"}`;
+          await prisma.recap.update({
+            where: { id },
+            data: {
+              status: "failed",
+              errorMessage: errorMsg,
+            },
+          });
+          return NextResponse.json({ error: errorMsg }, { status: 500 });
+        }
       }
-
-      const fileBuffer = await fs.promises.readFile(localFilePath);
 
       // 6. Call OpenAI Whisper Transcriptions API
       try {
