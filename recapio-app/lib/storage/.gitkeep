@@ -1,0 +1,2 @@
+# Audio upload and retrieval helpers
+# See architecture.md — raw audio files go to file storage, not the database

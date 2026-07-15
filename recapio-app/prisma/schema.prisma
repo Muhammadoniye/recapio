@@ -1,0 +1,52 @@
+// Prisma schema for Recapio
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RecapStatus {
+  queued
+  transcribing
+  transcribed
+  summarizing
+  complete
+  failed
+}
+
+model Recap {
+  id           String       @id @default(cuid())
+  title        String
+  status       RecapStatus  @default(queued)
+  audioUrl     String
+  transcript   String?      @db.Text
+  summary      String?      @db.Text
+  keyPoints    String?      @db.Text
+  errorMessage String?      @db.Text
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  actionItems ActionItem[]
+
+  @@map("recaps")
+}
+
+model ActionItem {
+  id        String   @id @default(cuid())
+  recapId   String
+  task      String
+  owner     String?
+  deadline  String?
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recap Recap @relation(fields: [recapId], references: [id], onDelete: Cascade)
+
+  @@map("action_items")
+}

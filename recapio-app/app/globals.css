@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Backgrounds */
+  --bg-base: #F7F8FA;
+  --bg-surface: #FFFFFF;
+
+  /* Text */
+  --text-primary: #111827;
+  --text-muted: #6B7280;
+
+  /* Accent */
+  --accent-primary: #4F46E5;
+  --accent-hover: #4338CA;
+
+  /* Border */
+  --border-default: #E5E7EB;
+
+  /* State */
+  --state-error: #DC2626;
+  --state-success: #16A34A;
+  --state-warning: #D97706;
+
+  /* Fonts */
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+
+  /* shadcn/ui required variables */
+  --background: var(--bg-base);
+  --foreground: var(--text-primary);
+  --card: var(--bg-surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-surface);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--accent-primary);
+  --primary-foreground: #FFFFFF;
+  --secondary: #F1F5F9;
+  --secondary-foreground: var(--text-primary);
+  --muted: #F1F5F9;
+  --muted-foreground: var(--text-muted);
+  --accent: #F1F5F9;
+  --accent-foreground: var(--text-primary);
+  --destructive: var(--state-error);
+  --destructive-foreground: #FFFFFF;
+  --border: var(--border-default);
+  --input: var(--border-default);
+  --ring: var(--accent-primary);
+  --radius: 0.75rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  }
+}

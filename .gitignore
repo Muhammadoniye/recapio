@@ -1,0 +1,32 @@
+# Node modules
+**/node_modules/
+
+# Next.js build output
+**/.next/
+**/out/
+
+# Local configuration and environment secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+**/.env
+**/.env.local
+
+# Vercel deployment metadata
+.vercel
+**/.vercel
+
+# App data directory for Gemini/Antigravity
+.gemini/
+**/antigravity-ide/
+
+# Uploaded local media files
+recapio-app/public/uploads/*
+!recapio-app/public/uploads/.gitkeep
+
+# System and logs
+*.log
+.DS_Store
+Thumbs.db

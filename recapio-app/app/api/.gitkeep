@@ -1,0 +1,2 @@
+# API route handlers
+# See architecture.md — this is the only layer allowed to call Whisper/Claude and write to the DB
