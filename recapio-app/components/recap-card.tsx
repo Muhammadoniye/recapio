@@ -6,6 +6,7 @@ import { ChevronRight, Calendar, AlertCircle, Trash2 } from "lucide-react";
 import { StatusBadge, RecapStatus } from "./status-badge";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { DeleteConfirmDialog } from "./delete-confirm-dialog";
 
 interface RecapCardProps {
   id: string;
@@ -29,6 +30,7 @@ export function RecapCard({
   onDelete,
 }: RecapCardProps) {
   const router = useRouter();
+  const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
 
   // Description block shown depending on state
   const getDescription = () => {
@@ -114,19 +116,28 @@ export function RecapCard({
 
       <div className="flex items-center gap-2 self-stretch pl-2 z-10">
         {onDelete && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (confirm("Are you sure you want to delete this recap? This action cannot be undone.")) {
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsDeleteOpen(true);
+              }}
+              className="h-8 w-8 text-[var(--text-muted)] hover:text-red-600 hover:bg-red-50 rounded-full"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+            <DeleteConfirmDialog
+              isOpen={isDeleteOpen}
+              onOpenChange={setIsDeleteOpen}
+              onConfirm={() => {
                 onDelete(id);
-              }
-            }}
-            className="h-8 w-8 text-[var(--text-muted)] hover:text-red-600 hover:bg-red-50 rounded-full"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+                setIsDeleteOpen(false);
+              }}
+              recapTitle={title}
+            />
+          </>
         )}
         <div className="p-1.5 rounded-full border border-transparent bg-[var(--bg-base)]/50 text-[var(--text-muted)] group-hover:text-[var(--accent-primary)] group-hover:border-[var(--border-default)] group-hover:bg-white transition-all duration-300 shadow-sm-hover">
           <ChevronRight className="h-4 w-4 transform group-hover:translate-x-0.5 transition-transform duration-200" />

@@ -10,16 +10,23 @@ export interface SummarizationResult {
   }[];
 }
 
+import { summarizeTranscriptWithGemini } from "./gemini";
+
 /**
- * Sends a transcript to Anthropic's Claude API for summarization and action item extraction.
+ * Sends a transcript to Anthropic's Claude API or Google Gemini 1.5 Flash for summarization and action item extraction.
  * 
  * @param transcript Plain-text meeting or lecture transcript
  * @returns Parsed JSON summary and action item object
  */
 export async function summarizeTranscript(transcript: string): Promise<SummarizationResult> {
+  // Check if Gemini is configured as the preferred/free option
+  if (process.env.GEMINI_API_KEY) {
+    return await summarizeTranscriptWithGemini(transcript);
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    throw new Error("Missing Anthropic API Key (ANTHROPIC_API_KEY) in environment variables.");
+    throw new Error("Missing API Credentials. Please configure GEMINI_API_KEY or ANTHROPIC_API_KEY in environment variables.");
   }
 
   const prompt = getSummarizationPrompt(transcript);

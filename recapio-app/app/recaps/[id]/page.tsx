@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge, RecapStatus } from "@/components/status-badge";
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 
 interface ActionItem {
   id: string;
@@ -54,6 +55,8 @@ export default function RecapDetailPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isTranscriptCollapsed, setIsTranscriptCollapsed] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Memoized fetch function to fetch recap details
   const fetchRecapDetails = useCallback(async (silent = false) => {
@@ -141,6 +144,25 @@ export default function RecapDetailPage() {
       fetchRecapDetails();
     } finally {
       setIsRetrying(false);
+    }
+  };
+
+  const handleDeleteRecap = async () => {
+    if (!id) return;
+    try {
+      setIsDeleting(true);
+      const res = await fetch(`/api/recaps/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || "Failed to delete recap.");
+      }
+      setIsDeleteOpen(false);
+      window.location.href = "/";
+    } catch (err) {
+      console.error("Delete recap error:", err);
+      alert(err instanceof Error ? err.message : "Failed to delete recap.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -292,26 +314,19 @@ export default function RecapDetailPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={async () => {
-                if (confirm("Are you sure you want to delete this recap? This action cannot be undone.")) {
-                  try {
-                    const res = await fetch(`/api/recaps/${id}`, { method: "DELETE" });
-                    const json = await res.json();
-                    if (!res.ok) {
-                      throw new Error(json.error || "Failed to delete recap.");
-                    }
-                    window.location.href = "/";
-                  } catch (err) {
-                    console.error("Delete recap error:", err);
-                    alert(err instanceof Error ? err.message : "Failed to delete recap.");
-                  }
-                }
-              }}
+              onClick={() => setIsDeleteOpen(true)}
               className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 rounded-md gap-1.5 h-9"
             >
               <Trash2 className="h-4 w-4" />
               <span className="hidden sm:inline">Delete</span>
             </Button>
+            <DeleteConfirmDialog
+              isOpen={isDeleteOpen}
+              onOpenChange={setIsDeleteOpen}
+              onConfirm={handleDeleteRecap}
+              recapTitle={recap.title}
+              isDeleting={isDeleting}
+            />
           </div>
         </div>
       </header>

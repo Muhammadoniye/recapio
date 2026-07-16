@@ -21,14 +21,12 @@ export async function POST(
 
   try {
     // 1. Validate AI Provider API Credentials
+    const geminiKey = process.env.GEMINI_API_KEY;
     const openAiKey = process.env.OPENAI_API_KEY;
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-    if (!openAiKey || !anthropicKey) {
-      const missingKeys = [];
-      if (!openAiKey) missingKeys.push("OPENAI_API_KEY");
-      if (!anthropicKey) missingKeys.push("ANTHROPIC_API_KEY");
-      const errorMsg = `System configuration error: Missing environment variable(s): ${missingKeys.join(", ")}. Please verify your server environment or .env configuration settings, configure the missing API credentials, and try again.`;
+    if (!geminiKey && (!openAiKey || !anthropicKey)) {
+      const errorMsg = "System configuration error: Please configure either GEMINI_API_KEY (for free processing) or both OPENAI_API_KEY and ANTHROPIC_API_KEY in your environment settings.";
 
       await prisma.recap.update({
         where: { id },
