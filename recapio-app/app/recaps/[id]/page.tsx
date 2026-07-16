@@ -14,7 +14,8 @@ import {
   Sparkles, 
   FileAudio,
   User,
-  Clock
+  Clock,
+  Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -286,7 +287,32 @@ export default function RecapDetailPage() {
             </h1>
           </div>
 
-          <StatusBadge status={recap.status} />
+          <div className="flex items-center gap-3">
+            <StatusBadge status={recap.status} />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                if (confirm("Are you sure you want to delete this recap? This action cannot be undone.")) {
+                  try {
+                    const res = await fetch(`/api/recaps/${id}`, { method: "DELETE" });
+                    const json = await res.json();
+                    if (!res.ok) {
+                      throw new Error(json.error || "Failed to delete recap.");
+                    }
+                    window.location.href = "/";
+                  } catch (err) {
+                    console.error("Delete recap error:", err);
+                    alert(err instanceof Error ? err.message : "Failed to delete recap.");
+                  }
+                }
+              }}
+              className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 rounded-md gap-1.5 h-9"
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Delete</span>
+            </Button>
+          </div>
         </div>
       </header>
 

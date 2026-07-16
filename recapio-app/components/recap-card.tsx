@@ -2,9 +2,10 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Calendar, AlertCircle } from "lucide-react";
+import { ChevronRight, Calendar, AlertCircle, Trash2 } from "lucide-react";
 import { StatusBadge, RecapStatus } from "./status-badge";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface RecapCardProps {
   id: string;
@@ -14,6 +15,7 @@ interface RecapCardProps {
   summaryPreview?: string;
   errorMessage?: string;
   className?: string;
+  onDelete?: (id: string) => void;
 }
 
 export function RecapCard({
@@ -24,6 +26,7 @@ export function RecapCard({
   summaryPreview,
   errorMessage,
   className,
+  onDelete,
 }: RecapCardProps) {
   const router = useRouter();
 
@@ -109,7 +112,22 @@ export function RecapCard({
         </div>
       </div>
 
-      <div className="flex items-center self-stretch pl-2">
+      <div className="flex items-center gap-2 self-stretch pl-2 z-10">
+        {onDelete && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm("Are you sure you want to delete this recap? This action cannot be undone.")) {
+                onDelete(id);
+              }
+            }}
+            className="h-8 w-8 text-[var(--text-muted)] hover:text-red-600 hover:bg-red-50 rounded-full"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
         <div className="p-1.5 rounded-full border border-transparent bg-[var(--bg-base)]/50 text-[var(--text-muted)] group-hover:text-[var(--accent-primary)] group-hover:border-[var(--border-default)] group-hover:bg-white transition-all duration-300 shadow-sm-hover">
           <ChevronRight className="h-4 w-4 transform group-hover:translate-x-0.5 transition-transform duration-200" />
         </div>

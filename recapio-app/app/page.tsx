@@ -116,6 +116,20 @@ export default function Home() {
     }
   };
 
+  const handleDeleteRecap = async (id: string) => {
+    try {
+      const res = await fetch(`/api/recaps/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || "Failed to delete recap.");
+      }
+      fetchRecaps();
+    } catch (err) {
+      console.error("Delete recap error:", err);
+      alert(err instanceof Error ? err.message : "Failed to delete recap.");
+    }
+  };
+
   const filteredRecaps = recaps
     .filter((recap) => {
       // 1. Search Query Filter
@@ -296,6 +310,7 @@ export default function Home() {
                     status={recap.status}
                     summaryPreview={recap.summary || undefined}
                     errorMessage={recap.errorMessage || undefined}
+                    onDelete={handleDeleteRecap}
                   />
                 ))}
               </div>
