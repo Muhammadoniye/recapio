@@ -5,6 +5,9 @@ import { summarizeTranscript } from "@/lib/ai/claude";
 import fs from "fs";
 import path from "path";
 
+export const maxDuration = 60; // Max allowed on Vercel Pro; 10s on Hobby
+export const dynamic = "force-dynamic";
+
 /**
  * POST /api/recaps/[id]/process
  * Orchestrates the full processing pipeline: audio transcription via Whisper
@@ -12,9 +15,9 @@ import path from "path";
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params;
+  const { id } = await params;
 
   try {
     // 1. Validate AI Provider API Credentials
