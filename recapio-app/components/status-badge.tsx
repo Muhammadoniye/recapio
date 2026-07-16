@@ -72,7 +72,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
     case "queued":
     default:
       config = {
-        label: "Queued",
+        label: "Processing",
         bgColor: "bg-[var(--state-warning)]/10",
         textColor: "text-[var(--state-warning)]",
         borderColor: "border-[var(--state-warning)]/20",

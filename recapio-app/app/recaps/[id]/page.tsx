@@ -80,6 +80,21 @@ export default function RecapDetailPage() {
     }
   }, [id, fetchRecapDetails]);
 
+  // Automatically trigger processing when visiting a queued recap
+  useEffect(() => {
+    if (recap && recap.status === "queued" && !isRetrying) {
+      const triggerProcessing = async () => {
+        try {
+          await fetch(`/api/recaps/${id}/process`, { method: "POST" });
+          fetchRecapDetails(true);
+        } catch (err) {
+          console.error("Auto trigger process error:", err);
+        }
+      };
+      triggerProcessing();
+    }
+  }, [recap, id, isRetrying, fetchRecapDetails]);
+
   // Polling loop: runs every 3s if status is active (non-terminal)
   useEffect(() => {
     if (!recap) return;

@@ -42,7 +42,7 @@ export function RecapCard({
         return "Audio transcription finished. Summarizing process will begin shortly.";
       case "queued":
       default:
-        return "Recap audio is successfully queued in file storage and waiting to start transcription.";
+        return "Audio processing has started. We are preparing the file for transcription.";
     }
   };
 

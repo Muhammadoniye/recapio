@@ -48,9 +48,29 @@ export default function Home() {
     }
   };
 
+  const [triggeredIds, setTriggeredIds] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     fetchRecaps();
   }, []);
+
+  // Automatically trigger processing for any recaps that are stuck in 'queued' state
+  useEffect(() => {
+    const queuedRecaps = recaps.filter(recap => recap.status === "queued" && !triggeredIds.has(recap.id));
+    if (queuedRecaps.length === 0) return;
+
+    setTriggeredIds(prev => {
+      const next = new Set(prev);
+      queuedRecaps.forEach(r => next.add(r.id));
+      return next;
+    });
+
+    queuedRecaps.forEach(recap => {
+      fetch(`/api/recaps/${recap.id}/process`, { method: "POST" })
+        .then(() => fetchRecaps())
+        .catch(err => console.error("Auto-process trigger error:", err));
+    });
+  }, [recaps, triggeredIds]);
 
   // Polling loop that triggers if any recap is actively in a non-terminal state
   useEffect(() => {
