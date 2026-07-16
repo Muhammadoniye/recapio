@@ -4,14 +4,20 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// Programmatically append connection_limit=1 to prevent connection exhaustion in serverless environment
+// Programmatically append connection_limit=1 and pgbouncer=true to prevent PgBouncer connection issues
 const getDatabaseUrl = () => {
-  let url = process.env.DATABASE_URL || "";
-  if (url && !url.includes("connection_limit=")) {
-    const separator = url.includes("?") ? "&" : "?";
-    url = `${url}${separator}connection_limit=1`;
+  const rawUrl = process.env.DATABASE_URL || "";
+  if (!rawUrl) return rawUrl;
+
+  try {
+    const urlObj = new URL(rawUrl);
+    urlObj.searchParams.set("pgbouncer", "true");
+    urlObj.searchParams.set("connection_limit", "1");
+    return urlObj.toString();
+  } catch (err) {
+    console.error("Failed to parse DATABASE_URL:", err);
+    return rawUrl;
   }
-  return url;
 };
 
 export const prisma =
