@@ -23,7 +23,7 @@ export async function transcribeAudioWithGemini(fileBuffer: Buffer, mimeType: st
   const base64Audio = fileBuffer.toString("base64");
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: {
@@ -76,7 +76,7 @@ export async function summarizeTranscriptWithGemini(transcript: string): Promise
   const promptText = getSummarizationPrompt(transcript);
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: {

@@ -1,114 +1,60 @@
-# Recapio
+# Recapio: Project Overview & Specification
 
-## Overview
+## 1. Overview
+Recapio is a dynamic web application that automates the process of transcribing, summarizing, and tracking action items from meeting and lecture recordings. Users upload audio files (such as `.mp3`, `.wav`, or `.m4a`), and the app automatically parses the audio to compile structured summaries, key discussion points, and interactive, checkable action checklists complete with assignees and deadlines.
 
-Recapio is a web application that turns raw meeting and lecture
-audio into a structured, readable record: a full transcript, a
-concise summary, and a checklist of action items with owners and
-deadlines. It is built for anyone who sits through meetings or
-lectures and either forgets to take notes or has no time to write
-them up afterward. Instead of manually typing minutes, a user
-uploads an audio recording and Recapio produces the summary and
-action items automatically using AI.
+---
 
-## Goals
+## 2. Technical Stack & Architecture
+Recapio is built on a modern, highly scalable, and cost-efficient serverless architecture:
 
-1. Reduce the time it takes to go from "meeting just ended" to
-   "clear written summary with action items" from ~20 minutes of
-   manual note-writing to under 3 minutes of automated processing.
-2. Ensure no action item discussed in a meeting or lecture gets
-   forgotten by extracting it into a persistent, checkable list.
-3. Give users a searchable archive of past meetings/lectures so
-   they never have to ask "what did we agree on last time?" again.
+* **Frontend Framework:** Next.js 14.2.35 (React, App Router) using a client-side polling model for dynamic UI status synchronizations.
+* **Database & ORM:** PostgreSQL (hosted on Supabase) utilizing Prisma ORM. Engineered programmatically to run with a transaction-mode connection pooler (PgBouncer) via port 6543, forcing `pgbouncer=true` and a strict connection limit of 1 per container to prevent resource exhaustion.
+* **Storage Layer:** Supabase Cloud Storage. Designed for direct client-to-bucket uploads from the browser (bypassing Vercel's 4.5MB API body limits) secured by bucket-level Row Level Security (RLS) policies.
+* **AI Core Services:** 
+  * Google Gemini 1.5 Flash API (Standalone/Free Tier option for both speech transcription and JSON structured summaries).
+  * OpenAI Whisper API & Anthropic Claude 3.5 Sonnet (Premium Tier alternatives).
+* **Styling & UI:** Tailwind CSS, Lucide icons, and Radix UI Primitives for a clean, custom design system.
 
-## Core User Flow
+---
 
-1. User lands on the Dashboard and sees a list of past recaps
-   (empty state on first visit).
-2. User clicks "New Recap," gives it a title, and uploads an
-   audio file (`.mp3`, `.wav`, or `.m4a`).
-3. Recapio uploads the file to storage and creates a Recap record
-   with status `queued`.
-4. Recapio transcribes the audio (status moves to `transcribing`,
-   then `transcribed`).
-5. Recapio sends the transcript to Claude to generate a summary
-   and structured action items (status moves to `summarizing`,
-   then `complete`).
-6. User is taken to the Recap Detail page automatically once
-   processing completes, or can navigate to it manually from the
-   dashboard while it's still processing to see live status.
-7. On the Recap Detail page, the user reads the summary, checks
-   off action items as they're completed, and can expand/search
-   the full transcript.
-8. User returns to the Dashboard at any time to search past
-   recaps by title or sort by date.
+## 3. Core Features & Functional Walkthrough
 
-## Features
+### 🚀 Direct Uploader & Validation
+* Handles file uploads up to 25MB (approx. 30–40 minutes of audio).
+* Direct-to-Supabase upload flow completely avoids Vercel serverless request payload limits.
+* Client-side validation for file formats (`.mp3`, `.wav`, `.m4a`) and maximum size constraints.
 
-### Upload & Processing
+### 🔄 Dynamic State Tracking & Auto-Processing
+* The app automatically orchestrates and monitors the background pipeline.
+* UI badges render status dynamically: `Processing ➜ Transcribing ➜ Transcribed ➜ Summarizing ➜ Complete`.
+* Mount-check listeners automatically trigger processing on the backend if a queued recording is visited or loaded on the dashboard, preventing pipeline hanging.
 
-- Upload an audio file with a title
-- Automatic pipeline: transcription → summarization → action item
-  extraction
-- Live status shown on both the dashboard and detail page
-  (`queued`, `transcribing`, `transcribed`, `summarizing`,
-  `complete`, `failed`)
+### 📝 Detail Workspace
+* Collapsible, plain-text transcription reader featuring real-time, highlighted query search.
+* Structured bulleted list of key discussion points parsed from raw transcripts.
+* Interactive checkbox lists for action items (tasks, assignees, deadlines) with persistent database updates on click.
 
-### AI Summarization
+### 🗑️ Custom Modal Cleanup Flow
+* Standard browser-native alert dialogs are replaced with a custom-built, modern confirmation dialog.
+* Triggers cascade deletion: purging the database record, deleting checklists, and deleting the physical audio file from Supabase Cloud Storage.
 
-- Concise natural-language summary of the discussion
-- Structured action items: task, owner (if mentioned), deadline
-  (if mentioned)
-- Key discussion points as a short bulleted list
+---
 
-### Recap Library (Dashboard)
+## 4. Scope Specification
 
-- List of all past recaps, most recent first
-- Search by title
-- Status badge per recap (processing vs. complete vs. failed)
+### 🎯 IN SCOPE (What is Supported)
+1. **Google Gemini Free Tier:** High-speed, 100% free transcription and summarization using Gemini 1.5 Flash.
+2. **Direct Browser Uploads:** Large file support up to 25MB directly to cloud storage.
+3. **Cascade Purges:** Deleting a recap automatically cleans up related database entries and storage files.
+4. **Auto-Triggering:** Automatically resumes/starts processing for any recap stuck in the "queued" status.
+5. **Interactive Checklists:** Checkbox state toggling persists instantly across reloads.
+6. **Search & Filter:** Find past recaps by title or filter by pipeline status.
 
-### Recap Detail View
-
-- Summary card
-- Action item checklist — each item can be marked complete/incomplete
-- Full transcript viewer — collapsible, with in-page text search
-
-## Scope
-
-### In Scope
-
-- Single-user, no-login usage (internal/demo tool)
-- Uploading pre-recorded audio files (not live recording)
-- Automated transcription via Whisper API
-- Automated summary and action item extraction via Claude API
-- Marking action items complete/incomplete
-- Searching and listing past recaps
-- Basic error/failure handling if transcription or summarization
-  fails
-
-### Out of Scope
-
-- Live/real-time recording and transcription
-- Multi-user accounts, authentication, teams, or roles
-- Speaker diarization (identifying who said what)
-- Email, SMS, or Slack notifications for action items
-- Editing or correcting the AI-generated transcript
-- Video file support (audio only)
-- Calendar integration or scheduling
-- Multi-language interface (English transcripts/summaries only)
-- Payment, billing, or usage limits
-
-## Success Criteria
-
-1. A user can upload an audio file and, without further input,
-   receive a complete summary and action item list.
-2. A user can mark an action item complete and have that state
-   persist after a page reload.
-3. A user can find a specific past recap by searching its title
-   from the dashboard.
-4. If transcription or summarization fails, the user sees a clear
-   `failed` status instead of a silently broken or infinitely
-   loading page.
-5. The full pipeline (upload → transcript → summary → action
-   items) completes for a 10–15 minute audio file without manual
-   intervention.
+### 🚫 OUT OF SCOPE (Future Features)
+1. **Live Stream Recording:** Transcribing audio in real-time from a microphrone (only pre-recorded file uploads are supported).
+2. **Speaker Diarization:** Automatically distinguishing different speakers in the transcript (e.g. "Speaker 1", "Speaker 2").
+3. **User Authentication:** No sign-in, login, or roles/permissions (designed as a single-workspace demo tool).
+4. **External Integrations:** Auto-syncing action items to Slack, Google Calendar, or sending email notifications.
+5. **Transcript Editing:** Manual editing or correction of generated text.
+6. **Video Transcribing:** Support for video uploads (MP4, AVI, etc.) is currently blocked.
