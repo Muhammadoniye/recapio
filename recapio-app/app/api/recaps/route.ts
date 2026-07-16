@@ -3,6 +3,19 @@ import { prisma } from "@/lib/db/prisma";
 import { saveAudioFile } from "@/lib/storage/upload";
 import path from "path";
 
+// Allow large audio file uploads (up to 25MB) on Vercel serverless
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: "25mb",
+    },
+    responseLimit: "25mb",
+  },
+};
+
+// Set max execution time to 60s for transcription processing
+export const maxDuration = 60;
+
 /**
  * GET /api/recaps
  * Retrieves a list of all recaps in the database ordered by creation date descending.
