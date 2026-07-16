@@ -1,17 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
-import { saveAudioFile } from "@/lib/storage/upload";
-import path from "path";
-
-// Allow large audio file uploads (up to 25MB) on Vercel serverless
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: "25mb",
-    },
-    responseLimit: "25mb",
-  },
-};
 
 // Set max execution time to 60s for transcription processing
 export const maxDuration = 60;
@@ -39,26 +27,15 @@ export async function GET() {
 
 /**
  * POST /api/recaps
- * Handles audio upload, stores the file, and queues a new recap record in the database.
+ * Accepts a JSON body with { title, audioUrl } — the file has already been uploaded
+ * directly from the browser to Supabase Storage, bypassing Vercel's body size limit.
  */
 export async function POST(request: NextRequest) {
   try {
-    const MAX_SIZE = 25 * 1024 * 1024; // 25MB limit
+    const body = await request.json();
+    const { title, audioUrl } = body;
 
-    // 1. Early check on Content-Length header to prevent unnecessary body downloading
-    const contentLength = request.headers.get("content-length");
-    if (contentLength && parseInt(contentLength, 10) > MAX_SIZE) {
-      return NextResponse.json(
-        { error: "File size exceeds the 25MB limit." },
-        { status: 413 }
-      );
-    }
-
-    const formData = await request.formData();
-    const title = formData.get("title");
-    const file = formData.get("file");
-
-    // Validate title presence
+    // Validate title
     if (!title || typeof title !== "string" || title.trim() === "") {
       return NextResponse.json(
         { error: "Recap title is required." },
@@ -66,34 +43,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file presence
-    if (!file || !(file instanceof File)) {
+    // Validate audioUrl
+    if (!audioUrl || typeof audioUrl !== "string" || !audioUrl.startsWith("http")) {
       return NextResponse.json(
-        { error: "Audio file is required." },
+        { error: "A valid audio URL is required." },
         { status: 400 }
       );
     }
-
-    // Validate file extension
-    const ext = path.extname(file.name).toLowerCase();
-    const validExtensions = [".mp3", ".wav", ".m4a"];
-    if (!validExtensions.includes(ext)) {
-      return NextResponse.json(
-        { error: "Invalid file format. Please upload .mp3, .wav, or .m4a audio files." },
-        { status: 400 }
-      );
-    }
-
-    // Validate file size (double check fallback)
-    if (file.size > MAX_SIZE) {
-      return NextResponse.json(
-        { error: "File size exceeds the 25MB limit." },
-        { status: 413 }
-      );
-    }
-
-    // Save the file to public/uploads/
-    const audioUrl = await saveAudioFile(file);
 
     // Create the database record with default status 'queued'
     const recap = await prisma.recap.create({
@@ -106,9 +62,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ data: recap }, { status: 201 });
   } catch (error) {
-    console.error("Failed to process recap creation:", error);
+    console.error("Failed to create recap record:", error);
     return NextResponse.json(
-      { error: "Failed to process upload and queue recap. Database connection offline." },
+      { error: "Failed to create recap. Database connection offline." },
       { status: 500 }
     );
   }

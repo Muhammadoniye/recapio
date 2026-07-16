@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UploadCloud, Music, X, FileAudio, CheckCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { createClient } from "@supabase/supabase-js";
 
 interface NewRecapDialogProps {
   onRecapCreated?: (title: string, fileName: string, recapId?: string) => void;
@@ -28,6 +29,7 @@ export function NewRecapDialog({ onRecapCreated, children }: NewRecapDialogProps
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const resetForm = () => {
@@ -37,6 +39,7 @@ export function NewRecapDialog({ onRecapCreated, children }: NewRecapDialogProps
     setIsSubmitting(false);
     setIsSuccess(false);
     setError(null);
+    setUploadProgress(null);
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -69,7 +72,6 @@ export function NewRecapDialog({ onRecapCreated, children }: NewRecapDialogProps
 
     setFile(selectedFile);
     if (!title) {
-      // Auto-populate title with filename minus extension
       const nameWithoutExt = selectedFile.name.replace(/\.[^/.]+$/, "");
       setTitle(nameWithoutExt);
     }
@@ -98,14 +100,52 @@ export function NewRecapDialog({ onRecapCreated, children }: NewRecapDialogProps
     setIsSubmitting(true);
     setError(null);
 
-    const formData = new FormData();
-    formData.append("title", title);
-    formData.append("file", file);
-
     try {
+      // Step 1: Upload file directly to Supabase Storage from the browser
+      // This bypasses Vercel's 4.5MB serverless body size limit entirely
+      setUploadProgress("Uploading audio to storage...");
+
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error("Storage configuration is missing. Please contact support.");
+      }
+
+      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+      const timestamp = Date.now();
+      const cleanName = file.name
+        .toLowerCase()
+        .replace(/[^a-z0-9.]/g, "-")
+        .replace(/-+/g, "-");
+      const fileName = `${timestamp}-${cleanName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("Audio")
+        .upload(fileName, file, {
+          contentType: file.type || "audio/mpeg",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        throw new Error(`Storage upload failed: ${uploadError.message}`);
+      }
+
+      // Step 2: Get the public URL of the uploaded file
+      const { data: urlData } = supabase.storage
+        .from("Audio")
+        .getPublicUrl(fileName);
+
+      const audioUrl = urlData.publicUrl;
+
+      // Step 3: Create the recap record in the database via API route (JSON only, no file)
+      setUploadProgress("Creating recap record...");
+
       const response = await fetch("/api/recaps", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: title.trim(), audioUrl }),
       });
 
       const result = await response.json();
@@ -116,12 +156,12 @@ export function NewRecapDialog({ onRecapCreated, children }: NewRecapDialogProps
 
       setIsSuccess(true);
       setIsSubmitting(false);
+      setUploadProgress(null);
 
       if (onRecapCreated) {
         onRecapCreated(title, file.name, result.data?.id);
       }
 
-      // Close the modal shortly after showing success state
       setTimeout(() => {
         setIsOpen(false);
         resetForm();
@@ -131,6 +171,7 @@ export function NewRecapDialog({ onRecapCreated, children }: NewRecapDialogProps
       const errorMessage = err instanceof Error ? err.message : "Failed to upload file. Please try again.";
       setError(errorMessage);
       setIsSubmitting(false);
+      setUploadProgress(null);
     }
   };
 
@@ -175,6 +216,12 @@ export function NewRecapDialog({ onRecapCreated, children }: NewRecapDialogProps
             {error && (
               <div className="p-3 text-xs text-[var(--state-error)] bg-[var(--state-error)]/10 border border-[var(--state-error)]/20 rounded-lg animate-in fade-in duration-200">
                 {error}
+              </div>
+            )}
+            {uploadProgress && (
+              <div className="p-3 text-xs text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 rounded-lg flex items-center gap-2 animate-in fade-in duration-200">
+                <Loader2 className="h-3 w-3 animate-spin shrink-0" />
+                {uploadProgress}
               </div>
             )}
             <div className="space-y-1.5">
